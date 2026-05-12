@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Essayage Virtuel de Montre</title>
+    <link rel="stylesheet" href="./style/style.css">
+</head>
+<body>
+
+<div id="container">
+    <video id="video" autoplay playsinline></video>
+    <canvas id="canvas"></canvas>
+
+    <div id="status">Initialisation...</div>
+
+    <div id="titre">
+        Placez votre poignet devant la caméra
+    </div>
+
+    <div id="ui">
+        <div class="btn-montre active" onclick="selectWatch(0)">
+            <img src="./Images/w1.png">
+        </div>
+        <div class="btn-montre" onclick="selectWatch(1)">
+            <img src="./Images/w2.png">
+        </div>
+        <div class="btn-montre" onclick="selectWatch(2)">
+            <img src="./Images/w3.png">
+        </div>
+    </div>
+
+    <div id="loading">
+        <div class="spinner"></div>
+        Chargement de la détection...
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+<script src="./js/app.js"></script>
+
+</body>
+</html>
