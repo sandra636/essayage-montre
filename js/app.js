@@ -50,40 +50,59 @@ hands.onResults((results) => {
         results.multiHandLandmarks.length > 0) {
 
         const landmarks = results.multiHandLandmarks[0];
+
+        // Points clés
         const wrist = landmarks[0];
-        const mid = landmarks[9];
-        const pinky = landmarks[17];
+        const index_mcp = landmarks[5];
+        const pinky_mcp = landmarks[17];
+        const mid_mcp = landmarks[9];
 
         const wristX = (1 - wrist.x) * canvas.width;
         const wristY = wrist.y * canvas.height;
-        const midX = (1 - mid.x) * canvas.width;
-        const midY = mid.y * canvas.height;
-        const pinkyX = (1 - pinky.x) * canvas.width;
-        const pinkyY = pinky.y * canvas.height;
+        const indexX = (1 - index_mcp.x) * canvas.width;
+        const indexY = index_mcp.y * canvas.height;
+        const pinkyX = (1 - pinky_mcp.x) * canvas.width;
+        const pinkyY = pinky_mcp.y * canvas.height;
+        const midX = (1 - mid_mcp.x) * canvas.width;
+        const midY = mid_mcp.y * canvas.height;
 
-        const watchSize = Math.sqrt(
-            Math.pow(pinkyX - wristX, 2) +
-            Math.pow(pinkyY - wristY, 2)
-        ) * 2.0;
-
-        const angle = Math.atan2(
-            pinkyY - wristY,
-            pinkyX - wristX
+        // Largeur du poignet
+        const wristWidth = Math.sqrt(
+            Math.pow(indexX - pinkyX, 2) +
+            Math.pow(indexY - pinkyY, 2)
         );
 
-        // Position dans le creux du poignet
-        const centerX = wristX - (midX - wristX) * 0.2;
-        const centerY = wristY - (midY - wristY) * 0.2;
+        // Hauteur de la montre proportionnelle
+        const watchWidth = wristWidth * 1.2;
+        const watchHeight = watchWidth * 0.55;
 
+        // Angle de rotation de la main
+        const angle = Math.atan2(
+            midY - wristY,
+            midX - wristX
+        );
+
+        // Position exacte au poignet
+        const centerX = wristX + (midX - wristX) * 0.12;
+        const centerY = wristY + (midY - wristY) * 0.12;
+
+        // Perspective — écrase la hauteur quand la main est de côté
+        const tiltX = index_mcp.x - pinky_mcp.x;
+        const tiltY = index_mcp.y - pinky_mcp.y;
+        const tilt = Math.abs(tiltX);
+        const scaleY = 0.3 + tilt * 0.8;
+
+        // Dessine avec perspective
         ctx.save();
         ctx.translate(centerX, centerY);
-        ctx.rotate(angle);
+        ctx.rotate(angle - Math.PI / 2);
+        ctx.scale(1, scaleY);
         ctx.drawImage(
             watchImg,
-            -watchSize / 2,
-            -watchSize / 4,
-            watchSize,
-            watchSize / 2
+            -watchWidth / 2,
+            -watchHeight / 2,
+            watchWidth,
+            watchHeight
         );
         ctx.restore();
 
