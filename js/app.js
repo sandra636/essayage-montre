@@ -67,25 +67,25 @@ hands.onResults((results) => {
             Math.pow(pinkyY - wristY, 2)
         ) * 2.0;
 
-        // Rotation correcte
+        // Rotation horizontale
         const angle = Math.atan2(
-            midY - wristY,
-            midX - wristX
+            pinkyY - wristY,
+            pinkyX - wristX
         );
 
-        // Position centrée sur le poignet
-        const centerX = (wristX + pinkyX) / 2;
-        const centerY = (wristY + pinkyY) / 2;
+        // Position exacte sur le poignet
+        const centerX = wristX + (midX - wristX) * 0.15;
+        const centerY = wristY + (midY - wristY) * 0.15;
 
         ctx.save();
         ctx.translate(centerX, centerY);
-        ctx.rotate(angle - Math.PI / 2);
+        ctx.rotate(angle);
         ctx.drawImage(
             watchImg,
             -watchSize / 2,
-            -watchSize / 2,
+            -watchSize / 4,
             watchSize,
-            watchSize
+            watchSize / 2
         );
         ctx.restore();
 
