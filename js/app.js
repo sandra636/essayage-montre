@@ -61,21 +61,19 @@ hands.onResults((results) => {
         const pinkyX = (1 - pinky.x) * canvas.width;
         const pinkyY = pinky.y * canvas.height;
 
-        // Taille basée sur largeur du poignet
         const watchSize = Math.sqrt(
             Math.pow(pinkyX - wristX, 2) +
             Math.pow(pinkyY - wristY, 2)
         ) * 2.0;
 
-        // Rotation horizontale
         const angle = Math.atan2(
             pinkyY - wristY,
             pinkyX - wristX
         );
 
-        // Position exacte sur le poignet
-        const centerX = wristX + (midX - wristX) * 0.15;
-        const centerY = wristY + (midY - wristY) * 0.15;
+        // Position dans le creux du poignet
+        const centerX = wristX - (midX - wristX) * 0.2;
+        const centerY = wristY - (midY - wristY) * 0.2;
 
         ctx.save();
         ctx.translate(centerX, centerY);
