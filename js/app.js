@@ -1,4 +1,3 @@
-// Images des montres
 const watchImages = [
     'Images/w1.png',
     'Images/w2.png',
@@ -15,18 +14,15 @@ const ctx = canvas.getContext('2d');
 const status = document.getElementById('status');
 const loading = document.getElementById('loading');
 
-// Sélectionner une montre
 function selectWatch(index) {
     currentWatch = index;
     watchImg = new Image();
     watchImg.src = watchImages[index];
-
     document.querySelectorAll('.btn-montre').forEach((btn, i) => {
         btn.classList.toggle('active', i === index);
     });
 }
 
-// Redimensionner le canvas
 function resizeCanvas() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
@@ -34,7 +30,6 @@ function resizeCanvas() {
 resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
 
-// MediaPipe Hands
 const hands = new Hands({
     locateFile: (file) => {
         return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
@@ -55,32 +50,35 @@ hands.onResults((results) => {
         results.multiHandLandmarks.length > 0) {
 
         const landmarks = results.multiHandLandmarks[0];
-
-        // Point 0 = poignet, Point 9 = milieu main
         const wrist = landmarks[0];
         const mid = landmarks[9];
+        const pinky = landmarks[17];
 
         const wristX = (1 - wrist.x) * canvas.width;
         const wristY = wrist.y * canvas.height;
         const midX = (1 - mid.x) * canvas.width;
         const midY = mid.y * canvas.height;
+        const pinkyX = (1 - pinky.x) * canvas.width;
+        const pinkyY = pinky.y * canvas.height;
 
-        // Taille de la montre
-        const dist = Math.sqrt(
-            Math.pow(midX - wristX, 2) +
-            Math.pow(midY - wristY, 2)
-        );
-        const watchSize = dist * 2.0;
+        // Taille basée sur largeur du poignet
+        const watchSize = Math.sqrt(
+            Math.pow(pinkyX - wristX, 2) +
+            Math.pow(pinkyY - wristY, 2)
+        ) * 2.0;
 
-        // Rotation de la montre
+        // Rotation correcte
         const angle = Math.atan2(
             midY - wristY,
             midX - wristX
         );
 
-        // Dessine la montre
+        // Position centrée sur le poignet
+        const centerX = (wristX + pinkyX) / 2;
+        const centerY = (wristY + pinkyY) / 2;
+
         ctx.save();
-        ctx.translate(wristX, wristY);
+        ctx.translate(centerX, centerY);
         ctx.rotate(angle - Math.PI / 2);
         ctx.drawImage(
             watchImg,
@@ -100,7 +98,6 @@ hands.onResults((results) => {
     }
 });
 
-// Démarre la caméra
 const camera = new Camera(video, {
     onFrame: async () => {
         await hands.send({ image: video });
