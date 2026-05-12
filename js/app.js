@@ -1,8 +1,8 @@
 // Images des montres
 const watchImages = [
-    'w1.png',
-    'w2.png',
-    'w3.png'
+    'Images/w1.png',
+    'Images/w2.png',
+    'Images/w3.png'
 ];
 
 let currentWatch = 0;
