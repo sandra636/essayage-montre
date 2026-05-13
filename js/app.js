@@ -5,31 +5,83 @@ const watchImages = [
 ];
 
 let currentWatch = 0;
-let watchImg = new Image();
-watchImg.src = watchImages[0];
+let watchTexture = null;
 
 const video = document.getElementById('video');
 const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
 const status = document.getElementById('status');
 const loading = document.getElementById('loading');
 
+// Three.js setup
+const renderer = new THREE.WebGLRenderer({
+    canvas: canvas,
+    alpha: true,
+    antialias: true
+});
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(window.devicePixelRatio);
+
+const scene = new THREE.Scene();
+const camera3D = new THREE.PerspectiveCamera(
+    75,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    1000
+);
+camera3D.position.z = 5;
+
+// Lumières
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+scene.add(ambientLight);
+const dirLight = new THREE.DirectionalLight(0xffffff, 0.5);
+dirLight.position.set(0, 1, 1);
+scene.add(dirLight);
+
+// Crée la montre 3D
+const watchGeometry = new THREE.CylinderGeometry(1, 1, 0.2, 32);
+const textureLoader = new THREE.TextureLoader();
+watchTexture = textureLoader.load(watchImages[0]);
+const watchMaterial = new THREE.MeshPhongMaterial({
+    map: watchTexture,
+    transparent: true
+});
+const watchMesh = new THREE.Mesh(watchGeometry, watchMaterial);
+scene.add(watchMesh);
+watchMesh.visible = false;
+
+// Bracelet haut
+const strapGeo1 = new THREE.BoxGeometry(0.4, 0.6, 0.1);
+const strapMat = new THREE.MeshPhongMaterial({ color: 0x333333 });
+const strap1 = new THREE.Mesh(strapGeo1, strapMat);
+strap1.position.set(0, 1.3, 0);
+watchMesh.add(strap1);
+
+// Bracelet bas
+const strapGeo2 = new THREE.BoxGeometry(0.4, 0.6, 0.1);
+const strap2 = new THREE.Mesh(strapGeo2, strapMat);
+strap2.position.set(0, -1.3, 0);
+watchMesh.add(strap2);
+
 function selectWatch(index) {
     currentWatch = index;
-    watchImg = new Image();
-    watchImg.src = watchImages[index];
     document.querySelectorAll('.btn-montre').forEach((btn, i) => {
         btn.classList.toggle('active', i === index);
     });
+    watchTexture = textureLoader.load(watchImages[index]);
+    watchMesh.material.map = watchTexture;
+    watchMesh.material.needsUpdate = true;
 }
+
+window.selectWatch = selectWatch;
 
 function resizeCanvas() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    camera3D.aspect = window.innerWidth / window.innerHeight;
+    camera3D.updateProjectionMatrix();
 }
-resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
 
+// MediaPipe
 const hands = new Hands({
     locateFile: (file) => {
         return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
@@ -44,27 +96,28 @@ hands.setOptions({
 });
 
 hands.onResults((results) => {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
     if (results.multiHandLandmarks &&
         results.multiHandLandmarks.length > 0) {
 
         const landmarks = results.multiHandLandmarks[0];
 
-        // Points clés
         const wrist = landmarks[0];
+        const mid = landmarks[9];
         const index_mcp = landmarks[5];
         const pinky_mcp = landmarks[17];
-        const mid_mcp = landmarks[9];
 
-        const wristX = (1 - wrist.x) * canvas.width;
-        const wristY = wrist.y * canvas.height;
-        const indexX = (1 - index_mcp.x) * canvas.width;
-        const indexY = index_mcp.y * canvas.height;
-        const pinkyX = (1 - pinky_mcp.x) * canvas.width;
-        const pinkyY = pinky_mcp.y * canvas.height;
-        const midX = (1 - mid_mcp.x) * canvas.width;
-        const midY = mid_mcp.y * canvas.height;
+        // Convertit coordonnées MediaPipe en coordonnées 3D
+        const wristX = (0.5 - wrist.x) * 10;
+        const wristY = (0.5 - wrist.y) * 10;
+        const wristZ = -wrist.z * 10;
+
+        const midX = (0.5 - mid.x) * 10;
+        const midY = (0.5 - mid.y) * 10;
+
+        const indexX = (0.5 - index_mcp.x) * 10;
+        const indexY = (0.5 - index_mcp.y) * 10;
+        const pinkyX = (0.5 - pinky_mcp.x) * 10;
+        const pinkyY = (0.5 - pinky_mcp.y) * 10;
 
         // Largeur du poignet
         const wristWidth = Math.sqrt(
@@ -72,50 +125,50 @@ hands.onResults((results) => {
             Math.pow(indexY - pinkyY, 2)
         );
 
-        // Hauteur de la montre proportionnelle
-        const watchWidth = wristWidth * 1.2;
-        const watchHeight = watchWidth * 0.55;
+        // Position de la montre
+        watchMesh.position.x = wristX + (midX - wristX) * 0.1;
+        watchMesh.position.y = wristY + (midY - wristY) * 0.1;
+        watchMesh.position.z = wristZ;
 
-        // Angle de rotation de la main
-        const angle = Math.atan2(
+        // Taille selon distance
+        const scale = wristWidth * 0.5;
+        watchMesh.scale.set(scale, scale, scale);
+
+        // Rotation selon orientation de la main
+        const angleZ = Math.atan2(
             midY - wristY,
             midX - wristX
         );
+        watchMesh.rotation.z = angleZ - Math.PI / 2;
+        watchMesh.rotation.x = Math.PI / 2;
 
-        // Position exacte au poignet
-        const centerX = wristX + (midX - wristX) * 0.12;
-        const centerY = wristY + (midY - wristY) * 0.12;
+        // Inclinaison selon tilt de la main
+        const tilt = (index_mcp.y - pinky_mcp.y) * 3;
+        watchMesh.rotation.y = tilt;
 
-        // Perspective — écrase la hauteur quand la main est de côté
-        const tiltX = index_mcp.x - pinky_mcp.x;
-        const tiltY = index_mcp.y - pinky_mcp.y;
-        const tilt = Math.abs(tiltX);
-        const scaleY = 0.3 + tilt * 0.8;
-
-        // Dessine avec perspective
-        ctx.save();
-        ctx.translate(centerX, centerY);
-        ctx.rotate(angle - Math.PI / 2);
-        ctx.scale(1, scaleY);
-        ctx.drawImage(
-            watchImg,
-            -watchWidth / 2,
-            -watchHeight / 2,
-            watchWidth,
-            watchHeight
-        );
-        ctx.restore();
+        watchMesh.visible = true;
 
         status.textContent = '✅ Poignet détecté !';
         status.style.color = '#00ff00';
 
     } else {
+        watchMesh.visible = false;
         status.textContent = 'Montrez votre poignet à la caméra';
         status.style.color = 'white';
     }
+
+    renderer.render(scene, camera3D);
 });
 
-const camera = new Camera(video, {
+// Animation
+function animate() {
+    requestAnimationFrame(animate);
+    renderer.render(scene, camera3D);
+}
+animate();
+
+// Caméra
+const mediapipeCamera = new Camera(video, {
     onFrame: async () => {
         await hands.send({ image: video });
     },
@@ -124,7 +177,7 @@ const camera = new Camera(video, {
     facingMode: 'environment'
 });
 
-camera.start().then(() => {
+mediapipeCamera.start().then(() => {
     loading.style.display = 'none';
 }).catch((err) => {
     loading.innerHTML = '❌ Erreur caméra : ' + err.message;
