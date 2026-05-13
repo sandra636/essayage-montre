@@ -37,7 +37,7 @@ const dirLight = new THREE.DirectionalLight(0xffffff, 0.5);
 dirLight.position.set(0, 1, 1);
 scene.add(dirLight);
 
-// Crée la montre 3D
+// Crée la montre 3D sans bracelets
 const watchGeometry = new THREE.CylinderGeometry(1, 1, 0.2, 32);
 const textureLoader = new THREE.TextureLoader();
 watchTexture = textureLoader.load(watchImages[0]);
@@ -48,19 +48,6 @@ const watchMaterial = new THREE.MeshPhongMaterial({
 const watchMesh = new THREE.Mesh(watchGeometry, watchMaterial);
 scene.add(watchMesh);
 watchMesh.visible = false;
-
-// Bracelet haut
-const strapGeo1 = new THREE.BoxGeometry(0.4, 0.6, 0.1);
-const strapMat = new THREE.MeshPhongMaterial({ color: 0x333333 });
-const strap1 = new THREE.Mesh(strapGeo1, strapMat);
-strap1.position.set(0, 1.3, 0);
-watchMesh.add(strap1);
-
-// Bracelet bas
-const strapGeo2 = new THREE.BoxGeometry(0.4, 0.6, 0.1);
-const strap2 = new THREE.Mesh(strapGeo2, strapMat);
-strap2.position.set(0, -1.3, 0);
-watchMesh.add(strap2);
 
 function selectWatch(index) {
     currentWatch = index;
@@ -106,7 +93,6 @@ hands.onResults((results) => {
         const index_mcp = landmarks[5];
         const pinky_mcp = landmarks[17];
 
-        // Convertit coordonnées MediaPipe en coordonnées 3D
         const wristX = (0.5 - wrist.x) * 10;
         const wristY = (0.5 - wrist.y) * 10;
         const wristZ = -wrist.z * 10;
@@ -125,16 +111,16 @@ hands.onResults((results) => {
             Math.pow(indexY - pinkyY, 2)
         );
 
-        // Position de la montre
-        watchMesh.position.x = wristX + (midX - wristX) * 0.1;
-        watchMesh.position.y = wristY + (midY - wristY) * 0.1;
+        // Position sur le poignet
+        watchMesh.position.x = wristX + (midX - wristX) * 0.05;
+        watchMesh.position.y = wristY + (midY - wristY) * 0.05;
         watchMesh.position.z = wristZ;
 
-        // Taille selon distance
-        const scale = wristWidth * 0.5;
+        // Taille
+        const scale = wristWidth * 0.6;
         watchMesh.scale.set(scale, scale, scale);
 
-        // Rotation selon orientation de la main
+        // Rotation
         const angleZ = Math.atan2(
             midY - wristY,
             midX - wristX
@@ -142,7 +128,7 @@ hands.onResults((results) => {
         watchMesh.rotation.z = angleZ - Math.PI / 2;
         watchMesh.rotation.x = Math.PI / 2;
 
-        // Inclinaison selon tilt de la main
+        // Inclinaison
         const tilt = (index_mcp.y - pinky_mcp.y) * 3;
         watchMesh.rotation.y = tilt;
 
